@@ -1154,7 +1154,7 @@ export function ReportsPage() {
           <Button
             size="icon"
             variant="outline"
-            disabled={page * 10 >= rows.length}
+            disabled={page * 10 >= total}
             onClick={() => setPage((p) => p + 1)}
           >
             <ChevronRight />
