@@ -60,6 +60,7 @@ import {
   analyzeSingleReport,
   getDashboardSummary,
   getReports,
+  uploadSafetyData,
 } from "@/services/api";
 import type { Report } from "@/types/intelligence";
 
@@ -357,6 +358,35 @@ const [dashboardLoading, setDashboardLoading] = useState(true);
 export function DataPage() {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{
+    filename: string;
+    rows_received: number;
+    rows_processed: number;
+  } | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
+  async function handleUpload() {
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setUploadError("");
+
+      const result = await uploadSafetyData(file);
+
+      setUploadResult(result);
+      setStep(2);
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : "Upload failed",
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function run() {
     setStep(5);
     setProgress(12);
@@ -407,43 +437,107 @@ export function DataPage() {
       >
         <div className="mx-auto max-w-5xl">
           {step === 1 && (
-            <div className="grid min-h-80 place-items-center border border-dashed border-primary/50 bg-primary/5 text-center">
-              <div>
-                <UploadCloud className="mx-auto size-10 text-primary" />
-                <h3 className="mt-4 text-base font-semibold">Drop safety data here</h3>
-                <p className="mt-2 text-sm text-muted-foreground">CSV or XLSX · maximum 250 MB</p>
-                <Button className="mt-5" onClick={() => setStep(2)}>
-                  Choose demo file
-                </Button>
-              </div>
-            </div>
-          )}
-          {step === 2 && (
-            <div className="space-y-4 py-8">
-              <div className="flex items-center gap-3 border border-border bg-muted/30 p-4">
-                <FileSpreadsheet className="size-8 text-success" />
-                <div>
-                  <p className="text-sm font-semibold">oil_safety_reports_q3.xlsx</p>
-                  <p className="text-xs text-muted-foreground">4.8 MB · 12,482 records</p>
-                </div>
-              </div>
-              {[
-                "File uploaded",
-                "Format valid",
-                "12,482 records detected",
-                "Required columns detected",
-              ].map((x) => (
-                <div key={x} className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="size-4 text-success" />
-                  {x}
-                </div>
-              ))}
-              <Button onClick={() => setStep(3)}>
-                Continue to mapping
-                <ArrowRight />
-              </Button>
-            </div>
-          )}
+  <div className="grid min-h-80 place-items-center border border-dashed border-primary/50 bg-primary/5 text-center">
+    <div>
+      <UploadCloud className="mx-auto size-10 text-primary" />
+
+      <h3 className="mt-4 text-base font-semibold">
+        Upload safety data
+      </h3>
+
+      <p className="mt-2 text-sm text-muted-foreground">
+        CSV or XLSX
+      </p>
+
+      <input
+        id="safety-file"
+        type="file"
+        accept=".csv,.xlsx"
+        className="hidden"
+        onChange={(e) => {
+          const selected = e.target.files?.[0] ?? null;
+          setFile(selected);
+          setUploadError("");
+        }}
+      />
+
+      <label htmlFor="safety-file">
+        <Button asChild className="mt-5">
+          <span>Choose file</span>
+        </Button>
+      </label>
+
+      {file && (
+        <div className="mt-4 border border-border bg-card p-3 text-left text-xs">
+          <p className="font-semibold">{file.name}</p>
+          <p className="mt-1 text-muted-foreground">
+            {(file.size / 1024 / 1024).toFixed(2)} MB
+          </p>
+        </div>
+      )}
+
+      {file && (
+        <Button
+          className="mt-4"
+          onClick={handleUpload}
+          disabled={uploading}
+        >
+          {uploading ? "Uploading..." : "Upload to Safety Intelligence"}
+        </Button>
+      )}
+
+      {uploadError && (
+        <p className="mt-4 text-xs text-destructive">
+          {uploadError}
+        </p>
+      )}
+    </div>
+  </div>
+)}
+          {step === 2 && uploadResult && (
+  <div className="space-y-4 py-8">
+    <div className="flex items-center gap-3 border border-border bg-muted/30 p-4">
+      <FileSpreadsheet className="size-8 text-success" />
+
+      <div>
+        <p className="text-sm font-semibold">
+          {uploadResult.filename}
+        </p>
+
+        <p className="text-xs text-muted-foreground">
+          {uploadResult.rows_processed.toLocaleString()} records imported
+        </p>
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircle2 className="size-4 text-success" />
+        File uploaded
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircle2 className="size-4 text-success" />
+        Format valid
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircle2 className="size-4 text-success" />
+        {uploadResult.rows_received.toLocaleString()} rows detected
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircle2 className="size-4 text-success" />
+        Reports stored in database
+      </div>
+    </div>
+
+    <Button onClick={() => setStep(3)}>
+      Continue
+      <ArrowRight />
+    </Button>
+  </div>
+)}
           {step === 3 && (
             <div className="py-6">
               <div className="grid grid-cols-[1fr_auto_1fr] gap-3 border-b border-border pb-2 text-[10px] uppercase text-muted-foreground">
