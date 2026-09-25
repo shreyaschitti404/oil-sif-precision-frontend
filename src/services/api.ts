@@ -184,7 +184,27 @@ export async function analyzeSingleReport(text: string) {
   };
 }
 
-export const uploadDataset = () =>
+export async function uploadSafetyData(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(apiUrl("/api/upload"), {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Upload failed");
+  }
+
+  return response.json() as Promise<{
+    status: string;
+    filename: string;
+    rows_received: number;
+    rows_processed: number;
+  }>;
+}
   Promise.resolve({
     name: "oil_safety_reports_q3.xlsx",
     records: 12482,
