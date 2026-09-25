@@ -981,22 +981,41 @@ export function PatternsPage() {
 }
 
 export function ReportsPage() {
-  const [q, setQ] = useState(""),
-    [site, setSite] = useState("all"),
-    [sif, setSif] = useState("all"),
-    [page, setPage] = useState(1),
-    [open, setOpen] = useState<Report | null>(null);
-  const rows = useMemo(
-    () =>
-      reports.filter(
-        (r) =>
-          (!q || Object.values(r).join(" ").toLowerCase().includes(q.toLowerCase())) &&
-          (site === "all" || r.site === site) &&
-          (sif === "all" || String(r.sif) === sif),
-      ),
-    [q, site, sif],
-  );
-  const pageRows = rows.slice((page - 1) * 10, page * 10);
+  const [q, setQ] = useState("");
+  const [site, setSite] = useState("all");
+  const [sif, setSif] = useState("all");
+  const [page, setPage] = useState(1);
+  const [open, setOpen] = useState<Report | null>(null);
+
+  const [rows, setRows] = useState<Report[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadReports() {
+      try {
+        setLoading(true);
+
+        const result = await getReports({
+          page,
+          pageSize: 10,
+          search: q,
+          site,
+          sif,
+        });
+
+        setRows(result.data);
+        setTotal(result.total);
+      } catch (error) {
+        console.error("Failed to load reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadReports();
+  }, [page, q, site, sif]);
+
   return (
     <>
       <PageHead
@@ -1093,7 +1112,7 @@ export function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((r) => (
+            {rows.map((r) => (
               <tr
                 key={r.id}
                 onClick={() => setOpen(r)}
@@ -1118,7 +1137,7 @@ export function ReportsPage() {
       </div>
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, rows.length)} of {rows.length} reports
+          Showing {total === 0 ? 0 : (page - 1) * 10 + 1}–{Math.min(page * 10, total)} of {total} reports
         </span>
         <div className="flex gap-2">
           <Button
