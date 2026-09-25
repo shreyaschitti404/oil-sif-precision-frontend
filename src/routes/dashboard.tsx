@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { DashboardPage } from "@/components/pages";
+export const Route=createFileRoute("/dashboard")({head:()=>({meta:[{title:"Safety Intelligence Command Center — OIL SIF Intelligence"},{name:"description",content:"Organization-wide SIF precursor intelligence and rapid report analysis."},{property:"og:title",content:"Safety Intelligence Command Center — OIL SIF Intelligence"},{property:"og:description",content:"Organization-wide SIF precursor intelligence and rapid report analysis."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:DashboardPage});

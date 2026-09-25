@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { DataPage } from "@/components/pages";
+export const Route=createFileRoute("/data")({head:()=>({meta:[{title:"Import Safety Data — OIL SIF Intelligence"},{name:"description",content:"Upload and validate safety datasets for synthetic SIF precursor analysis."},{property:"og:title",content:"Import Safety Data — OIL SIF Intelligence"},{property:"og:description",content:"Upload and validate safety datasets for synthetic SIF precursor analysis."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:DataPage});

@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { SifPage } from "@/components/pages";
+export const Route=createFileRoute("/sif-intelligence")({head:()=>({meta:[{title:"SIF Intelligence — OIL SIF Intelligence"},{name:"description",content:"Explore the composition, trends, hazards, and control failures within SIF-potential reports."},{property:"og:title",content:"SIF Intelligence — OIL SIF Intelligence"},{property:"og:description",content:"Explore the composition, trends, hazards, and control failures within SIF-potential reports."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:SifPage});

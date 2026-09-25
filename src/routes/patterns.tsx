@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PatternsPage } from "@/components/pages";
+export const Route=createFileRoute("/patterns")({head:()=>({meta:[{title:"Recurring SIF Precursor Patterns — OIL SIF Intelligence"},{name:"description",content:"Investigate recurring precursor conditions, affected sites, barriers, and evidence."},{property:"og:title",content:"Recurring SIF Precursor Patterns — OIL SIF Intelligence"},{property:"og:description",content:"Investigate recurring precursor conditions, affected sites, barriers, and evidence."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:PatternsPage});

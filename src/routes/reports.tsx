@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ReportsPage } from "@/components/pages";
+export const Route=createFileRoute("/reports")({head:()=>({meta:[{title:"Safety Report Explorer — OIL SIF Intelligence"},{name:"description",content:"Search and inspect individual safety reports and their explainable AI classifications."},{property:"og:title",content:"Safety Report Explorer — OIL SIF Intelligence"},{property:"og:description",content:"Search and inspect individual safety reports and their explainable AI classifications."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:ReportsPage});

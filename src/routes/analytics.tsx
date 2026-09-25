@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AnalyticsPage } from "@/components/pages";
+export const Route=createFileRoute("/analytics")({head:()=>({meta:[{title:"Safety Analytics Workspace — OIL SIF Intelligence"},{name:"description",content:"Combine operational dimensions to investigate concentrated SIF precursor signals."},{property:"og:title",content:"Safety Analytics Workspace — OIL SIF Intelligence"},{property:"og:description",content:"Combine operational dimensions to investigate concentrated SIF precursor signals."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:AnalyticsPage});
