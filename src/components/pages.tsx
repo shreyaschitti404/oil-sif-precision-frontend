@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
@@ -56,7 +56,7 @@ import {
 } from "@/components/IntelligenceUI";
 import { ReportDrawer } from "@/components/ReportDrawer";
 import { dashboard, patterns, reports, rules, sites, trend } from "@/data/mockData";
-import { analyzeSingleReport } from "@/services/api";
+import { analyzeSingleReport, getReports } from "@/services/api";
 import type { Report } from "@/types/intelligence";
 
 const benchmark = [
