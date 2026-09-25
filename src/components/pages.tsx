@@ -56,7 +56,11 @@ import {
 } from "@/components/IntelligenceUI";
 import { ReportDrawer } from "@/components/ReportDrawer";
 import { dashboard, patterns, reports, rules, sites, trend } from "@/data/mockData";
-import { analyzeSingleReport, getReports } from "@/services/api";
+import {
+  analyzeSingleReport,
+  getDashboardSummary,
+  getReports,
+} from "@/services/api";
 import type { Report } from "@/types/intelligence";
 
 const benchmark = [
@@ -72,6 +76,38 @@ export function DashboardPage() {
     null,
   );
   const [open, setOpen] = useState<Report | null>(null);
+  const [summary, setSummary] = useState({
+  totalReports: 0,
+  sifReports: 0,
+  density: 0,
+  critical: 0,
+  sites: 0,
+});
+
+const [dashboardLoading, setDashboardLoading] = useState(true);
+  useEffect(() => {
+  async function loadDashboard() {
+    try {
+      setDashboardLoading(true);
+
+      const result = await getDashboardSummary();
+
+      setSummary({
+        totalReports: result.totalReports,
+        sifReports: result.sifReports,
+        density: result.density,
+        critical: result.critical,
+        sites: result.sites,
+      });
+    } catch (error) {
+      console.error("Failed to load dashboard:", error);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
+
+  loadDashboard();
+}, []);
   async function analyze() {
     if (!text.trim()) return;
     setState("loading");
@@ -90,30 +126,30 @@ export function DashboardPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric
           label="Total Reports"
-          value={dashboard.totalReports.toLocaleString()}
+          value={dashboardLoading ? "..." : summary.totalReports.toLocaleString()}
           trend="All operational sources"
         />
         <Metric
           label="SIF-Potential Reports"
-          value={dashboard.sifReports.toLocaleString()}
+          value={dashboardLoading ? "..." : summary.sifReports.toLocaleString()}
           trend="+4.8% vs prior period"
           tone="critical"
         />
         <Metric
           label="SIF Precursor Density"
-          value={`${dashboard.density}%`}
+          value={dashboardLoading ? "..." : `${summary.density}%`}
           trend="Across 8 operational sites"
           tone="warning"
         />
         <Metric
           label="Critical Precursors"
-          value={dashboard.critical.toLocaleString()}
+          value={dashboardLoading ? "..." : summary.critical.toLocaleString()}
           trend="128 require validation"
           tone="critical"
         />
         <Metric
           label="Sites with SIF Precursors"
-          value={`${dashboard.sites} / 8`}
+          value={dashboardLoading ? "..." : `${summary.sites}`}
           trend="1 site below threshold"
           tone="success"
         />
