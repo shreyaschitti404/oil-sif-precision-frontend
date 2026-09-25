@@ -22,14 +22,20 @@ async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(apiUrl(path));
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    const errorText = await response.text();
+
+    throw new Error(
+      errorText || `API request failed: ${response.status}`,
+    );
   }
 
   return response.json();
 }
 
-// Keep these mock functions temporarily.
-// We'll replace them one by one.
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 export async function getDashboardSummary() {
   const result = await apiGet<{
     total_reports: number;
@@ -51,8 +57,11 @@ export async function getDashboardSummary() {
 
   return {
     totalReports: result.total_reports,
+
+    // ML not connected yet.
     sifReports: 0,
     density: 0,
+
     critical: result.critical_reports,
     sites: result.reports_by_site.length,
 
@@ -61,17 +70,36 @@ export async function getDashboardSummary() {
     reportsBySeverity: result.reports_by_severity,
   };
 }
-export const getSifTrends = () => Promise.resolve(trend);
-export const getRuleDistribution = () => Promise.resolve(rules);
-export const getSites = () => Promise.resolve(sites);
-export const getSite = (id: string) =>
-  Promise.resolve(sites.find((x) => x.id === id) ?? sites[0]);
-export const getRules = () => Promise.resolve(rules);
-export const getPatterns = () => Promise.resolve(patterns);
-export const getPattern = (id: string) =>
-  Promise.resolve(patterns.find((x) => x.id === id) ?? patterns[0]);
 
-// REAL BACKEND CONNECTION
+/* =========================================================
+   TEMPORARY MOCK FUNCTIONS
+   These will be replaced with real APIs later.
+   ========================================================= */
+
+export const getSifTrends = () => Promise.resolve(trend);
+
+export const getRuleDistribution = () => Promise.resolve(rules);
+
+export const getSites = () => Promise.resolve(sites);
+
+export const getSite = (id: string) =>
+  Promise.resolve(
+    sites.find((x) => x.id === id) ?? sites[0],
+  );
+
+export const getRules = () => Promise.resolve(rules);
+
+export const getPatterns = () => Promise.resolve(patterns);
+
+export const getPattern = (id: string) =>
+  Promise.resolve(
+    patterns.find((x) => x.id === id) ?? patterns[0],
+  );
+
+/* =========================================================
+   REAL REPORTS API
+   ========================================================= */
+
 export async function getReports(query: ReportQuery = {}) {
   const params = new URLSearchParams();
 
@@ -87,13 +115,29 @@ export async function getReports(query: ReportQuery = {}) {
     params.set("search", query.search);
   }
 
+  if (query.site && query.site !== "all") {
+    params.set("site", query.site);
+  }
+
   const queryString = params.toString();
+
   const path = queryString
     ? `/api/reports?${queryString}`
     : "/api/reports";
 
-  const backendReports = await apiGet<
-    Array<{
+  /*
+    Backend response:
+
+    {
+      data: [...],
+      total: 34,
+      page: 1,
+      page_size: 10
+    }
+  */
+
+  const response = await apiGet<{
+    data: Array<{
       report_id: string;
       report_text: string;
       report_date: string | null;
@@ -102,48 +146,96 @@ export async function getReports(query: ReportQuery = {}) {
       facility: string | null;
       site: string | null;
       activity: string | null;
-    }>
-  >(path);
 
-  const data: Report[] = backendReports.map((r) => ({
+      // ML fields
+      sif_potential: boolean | null;
+      confidence: number | null;
+      life_saving_rule: string | null;
+      hazard: string | null;
+      barrier_failure: string | null;
+      precursor_pattern: string | null;
+      model_version: string | null;
+    }>;
+
+    total: number;
+    page: number;
+    page_size: number;
+  }>(path);
+
+  const data: Report[] = response.data.map((r) => ({
     id: r.report_id,
+
     date: r.report_date ?? "",
+
     site: r.site ?? "Unknown",
+
     location: r.facility ?? "Unknown",
+
     type: r.report_type ?? "Unknown",
+
     description: r.report_text,
 
-    // ML hasn't been connected yet.
-    sif: false,
-    confidence: 0,
+    /*
+      ML is not connected yet.
+      Once your friend's model is added,
+      these fields will come from predictions.
+    */
+    sif: r.sif_potential ?? false,
 
-    rule: "Pending ML",
+    confidence: r.confidence ?? 0,
+
+    rule: r.life_saving_rule ?? "Pending ML",
+
     activity: r.activity ?? "Unknown",
-    hazard: "Pending ML",
-    barrier: "Pending ML",
+
+    hazard: r.hazard ?? "Pending ML",
+
+    barrier: r.barrier_failure ?? "Pending ML",
+
     consequence: "Pending ML",
-    pattern: "Pending ML",
+
+    pattern: r.precursor_pattern ?? "Pending ML",
 
     risk:
       r.severity?.toLowerCase() === "critical"
         ? "Critical"
         : r.severity?.toLowerCase() === "high"
           ? "High"
-          : "Low",
+          : r.severity?.toLowerCase() === "medium"
+            ? "Medium"
+            : "Low",
 
     evidence: [],
   }));
 
-  const page = query.page ?? 1;
-  const pageSize = query.pageSize ?? 10;
+  /*
+    IMPORTANT:
+
+    Do NOT slice the data here.
+
+    FastAPI already handles:
+      page
+      page_size
+      search
+      site
+
+    So we return exactly what the backend gave us.
+  */
 
   return {
-    data: data.slice((page - 1) * pageSize, page * pageSize),
-    total: data.length,
-    page,
-    pageSize,
+    data,
+
+    total: response.total,
+
+    page: response.page,
+
+    pageSize: response.page_size,
   };
 }
+
+/* =========================================================
+   ANALYTICS
+   ========================================================= */
 
 export const getAnalytics = () =>
   Promise.resolve({
@@ -153,28 +245,49 @@ export const getAnalytics = () =>
     patterns,
   });
 
-// Still mock for now.
-// We will connect this to your friend's ML later.
+/* =========================================================
+   SINGLE REPORT ANALYSIS
+   TEMPORARY MOCK
+
+   This will later call:
+   POST /api/analyze
+
+   after your friend's ML model is ready.
+   ========================================================= */
+
 export async function analyzeSingleReport(text: string) {
   const nonSif = /housekeeping|water leak|office/i.test(text);
 
   return {
     sif: !nonSif,
+
     confidence: nonSif ? 68 : 94,
+
     risk: nonSif ? "LOW" : "CRITICAL",
+
     rule: nonSif ? "Other" : "Energy Isolation",
-    activity: nonSif ? "Housekeeping" : "Electrical Maintenance",
+
+    activity: nonSif
+      ? "Housekeeping"
+      : "Electrical Maintenance",
+
     hazard: nonSif
       ? "Slip / Trip"
       : "Uncontrolled Electrical Energy",
+
     barrier: nonSif
       ? "Routine inspection"
       : "Isolation Verification",
+
     consequence: nonSif
       ? "Minor injury"
       : "Fatal Electrical Contact",
+
     evidence: nonSif
-      ? ["Limited exposure", "No critical energy source"]
+      ? [
+          "Limited exposure",
+          "No critical energy source",
+        ]
       : [
           "Lockout bypass",
           "Electrical energy exposure",
@@ -184,18 +297,29 @@ export async function analyzeSingleReport(text: string) {
   };
 }
 
+/* =========================================================
+   REAL CSV / XLSX UPLOAD
+   ========================================================= */
+
 export async function uploadSafetyData(file: File) {
   const formData = new FormData();
+
   formData.append("file", file);
 
-  const response = await fetch(apiUrl("/api/upload"), {
-    method: "POST",
-    body: formData,
-  });
+  const response = await fetch(
+    apiUrl("/api/upload"),
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Upload failed");
+
+    throw new Error(
+      errorText || "Upload failed",
+    );
   }
 
   return response.json() as Promise<{
@@ -205,15 +329,29 @@ export async function uploadSafetyData(file: File) {
     rows_processed: number;
   }>;
 }
+
+/* =========================================================
+   OLD MOCK UPLOAD FUNCTION
+   Kept temporarily in case another page still imports it.
+   ========================================================= */
+
+export const uploadDataset = () =>
   Promise.resolve({
-    name: "oil_safety_reports_q3.xlsx",
-    records: 12482,
+    name: "demo-upload.csv",
+    records: 0,
     valid: true,
   });
 
+/* =========================================================
+   OLD MOCK PROCESS FUNCTION
+   Kept temporarily.
+
+   We will remove this once the upload page is fully real.
+   ========================================================= */
+
 export const processDataset = () =>
   Promise.resolve({
-    processed: 12482,
-    sif: 2731,
-    critical: 847,
+    processed: 0,
+    sif: 0,
+    critical: 0,
   });
