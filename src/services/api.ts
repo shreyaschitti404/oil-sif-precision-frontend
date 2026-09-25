@@ -30,7 +30,37 @@ async function apiGet<T>(path: string): Promise<T> {
 
 // Keep these mock functions temporarily.
 // We'll replace them one by one.
-export const getDashboardSummary = () => Promise.resolve(dashboard);
+export async function getDashboardSummary() {
+  const result = await apiGet<{
+    total_reports: number;
+    critical_reports: number;
+    high_reports: number;
+    reports_by_site: Array<{
+      site: string;
+      count: number;
+    }>;
+    reports_by_activity: Array<{
+      activity: string;
+      count: number;
+    }>;
+    reports_by_severity: Array<{
+      severity: string;
+      count: number;
+    }>;
+  }>("/api/dashboard");
+
+  return {
+    totalReports: result.total_reports,
+    sifReports: 0,
+    density: 0,
+    critical: result.critical_reports,
+    sites: result.reports_by_site.length,
+
+    reportsBySite: result.reports_by_site,
+    reportsByActivity: result.reports_by_activity,
+    reportsBySeverity: result.reports_by_severity,
+  };
+}
 export const getSifTrends = () => Promise.resolve(trend);
 export const getRuleDistribution = () => Promise.resolve(rules);
 export const getSites = () => Promise.resolve(sites);
