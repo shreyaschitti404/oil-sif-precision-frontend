@@ -254,46 +254,68 @@ export const getAnalytics = () =>
 
    after your friend's ML model is ready.
    ========================================================= */
-
 export async function analyzeSingleReport(text: string) {
-  const nonSif = /housekeeping|water leak|office/i.test(text);
+  const response = await fetch(apiUrl("/api/analyze"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      errorText || `Analysis request failed: ${response.status}`,
+    );
+  }
+
+  const result = (await response.json()) as {
+    sif_potential: boolean;
+    confidence: number;
+    life_saving_rule: string | null;
+    activity: string | null;
+    hazard: string | null;
+    barrier_failure: string | null;
+    precursor_pattern: string | null;
+    model_version: string;
+  };
 
   return {
-    sif: !nonSif,
+    sif: result.sif_potential,
 
-    confidence: nonSif ? 68 : 94,
+    confidence: Math.round(result.confidence * 100),
 
-    risk: nonSif ? "LOW" : "CRITICAL",
+    risk: result.sif_potential
+      ? "CRITICAL"
+      : "LOW",
 
-    rule: nonSif ? "Other" : "Energy Isolation",
+    rule:
+      result.life_saving_rule ??
+      "Pending ML",
 
-    activity: nonSif
-      ? "Housekeeping"
-      : "Electrical Maintenance",
+    activity:
+      result.activity ??
+      "Pending ML",
 
-    hazard: nonSif
-      ? "Slip / Trip"
-      : "Uncontrolled Electrical Energy",
+    hazard:
+      result.hazard ??
+      "Pending ML",
 
-    barrier: nonSif
-      ? "Routine inspection"
-      : "Isolation Verification",
+    barrier:
+      result.barrier_failure ??
+      "Pending ML",
 
-    consequence: nonSif
-      ? "Minor injury"
-      : "Fatal Electrical Contact",
+    consequence: "Pending ML",
 
-    evidence: nonSif
-      ? [
-          "Limited exposure",
-          "No critical energy source",
-        ]
-      : [
-          "Lockout bypass",
-          "Electrical energy exposure",
-          "Isolation verification failure",
-          "Worker exposure",
-        ],
+    evidence: result.precursor_pattern
+      ? [result.precursor_pattern]
+      : [],
+
+    model_version: result.model_version,
   };
 }
 
